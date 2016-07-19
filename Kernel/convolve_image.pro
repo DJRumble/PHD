@@ -321,14 +321,14 @@ if (count EQ 0) then pixel_scale_kernel = fxpar(result_kernel_header,'SECPIX',co
 if (count EQ 0) then pixel_scale_kernel = abs(fxpar(result_kernel_header,'CD1_1',count=count)*3600.0)
 if (count EQ 0) then pixel_scale_kernel = abs(fxpar(result_kernel_header,'CDELT1',count=count)*3600.0)
 if (count EQ 0) then begin
-   print,'WARNING: we cannot get the pixel size in the image fits file header!!!!'
-   print,' '
-   print,'Please enter the pixel size of the image in arcsec.'
-   print,'For example: 0.50'
-   pixel_scale_kernel = 1.0
-   read,': ',pixel_scale_kernel
-   pixel_scale_kernel = pixel_scale_kernel > 0.001
-   print,' '
+   ;print,'WARNING: we cannot get the pixel size in the kernel fits file header!!!!'
+   ;print,' '
+   ;print,'Please enter the pixel size of the kernel in arcsec.'
+   ;print,'For example: 0.50'
+   pixel_scale_kernel = 4.0
+   ;read,': ',pixel_scale_kernel
+   ;pixel_scale_kernel = pixel_scale_kernel > 0.001
+   ;print,' '
 endif 
     
 if (abs(pixel_scale_kernel - pixel_scale)/pixel_scale) gt 0.05 then begin
@@ -506,6 +506,9 @@ do_the_convolution,image,header,kernel_image,kernel_header,$
 
 fits_write,images_path+Filename+'_convolved.fits',result_image,result_header 
 if do_we_save_the_kernel eq 1 then fits_write,images_path+Filename+'_kernel.fits',result_kernel_image,result_kernel_header
+
+print,'image found: ',images_path+Filename+'_convolved.fits'
+print,'kernel found: ',images_path+Filename+'_kernel.fits'
 
 if do_we_write eq 1 then print,'The image was convolved and saved successfully' 
 if do_we_write eq 1 then print,' '

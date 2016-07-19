@@ -228,7 +228,7 @@ def temp_error(error,tempCUT,Temp_error,Temp_percent,beta):
     cmd1 = '%s/add in1=%s in2=%s out=%s'%(kapdir,Z,U,ZplusU)
     os.system(cmd1)
     cmd2 = '%s/csub in=%s scalar=2 out=%s'%(kapdir,ZplusU,numerator)
-    os.system(cmd2)
+    os.system(cmd2
     #Dinominator (bottom) - Arithmatic
     print '-Dinominator'
     cmd1 = '%s/cmult in=%s scalar=-16.93 out=%s'%(kapdir,Y,Y17)
@@ -243,6 +243,7 @@ def temp_error(error,tempCUT,Temp_error,Temp_percent,beta):
     os.system(cmd1)
     cmd2 = '%s/csub in=%s scalar=32 out=%s'%(kapdir,YplusVplusY,dinominator)
     os.system(cmd2)
+         
     #Final round of arthimatic
     print '-Calculating the final uncertainty'
     cmd = '%s/div in1=%s in2=%s out=%s'%(kapdir,numerator,dinominator,fraction)
@@ -253,7 +254,6 @@ def temp_error(error,tempCUT,Temp_error,Temp_percent,beta):
     os.system(cmd)
     cmd = '%s/cdiv in=%s scalar=%s out=%s'%(kapdir,part2,A,Temp_error)
     os.system(cmd)
-
 
     cmd = '%s/div in1=%s in2=%s out=%s'%(kapdir,Temp_error,tempRAW,Frac_err)
     os.system(cmd)
@@ -323,10 +323,11 @@ def FourComponentDualBeam(p450,p850,fwhm450MB,fwhm850MB,fwhm450SB,fwhm850SB,in45
     os.system(cmd2)
     os.system(cmd3)
     os.system(cmd4)
-    cmd1 = '%s/add in1=%s in2=%s out=%s'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s450normMB.sdf',output_dir+'/'+method+'/process/'+file+'/s450normSB.sdf', output_dir+'/'+method+'/process/'+file+'/s450convolve.sdf')
-    cmd2 = '%s/add in1=%s in2=%s out=%s'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s850normMB.sdf',output_dir+'/'+method+'/process/'+file+'/s850normSB.sdf', output_dir+'/'+method+'/process/'+file+'/s850convolve.sdf')
+    cmd1 = '%s/add in1=%s in2=%s out=%s'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s450normMB.sdf',output_dir+'/'+method+'/process/'+file+'/s450normSB.sdf', output_dir+'/'+method+'/map/'+file+'/s450convolve.sdf')
+    cmd2 = '%s/add in1=%s in2=%s out=%s'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s850normMB.sdf',output_dir+'/'+method+'/process/'+file+'/s850normSB.sdf', output_dir+'/'+method+'/map/'+file+'/s850convolve.sdf')
     os.system(cmd1)
     os.system(cmd2)
+
 
 def KernelMethod(in450_fits,in450):
 ### Convolve 450um map with the convolution Kernel to achive 850 beam convolution. This is done via IDL scripts:
@@ -334,34 +335,25 @@ def KernelMethod(in450_fits,in450):
 #convolve_image.pro
 #If this doesn't work you may need to add 'setenv IDL_PATH /usr/local/lib/idl/astro/pro:/usr/local/exelis/idl/lib'  to your .cshrc file
 
-    print in450
-
     if (os.path.exists(in450_fits)):
         os.unlink(in450_fits)
+
     cmd = '%s/ndf2fits in=%s out=%s noprohis QUIET'%(convdir,in450,in450_fits)
     os.system(cmd)
-
-    #Create a new text file with the file name to be transfered to IDL.
-    text = 'IDLinput.txt'
-    text_file = open('IDLinput.txt', "w")
-    text_file.write(in450_fits)
-    text_file.close()
+    print in450_fits
 
 #Run IDL script - user will be prompted to manually enter more details.
-    cmd = 'idl run_autokernel_convol.pro'
+    cmd = 'idl run_kernel_convol.pro'
     os.system(cmd)
 
     K450_fits = 'K450convolve.fits'
-    K450 = output_dir+'/'+method+'/map/'+file+'/s450convolve.sdf'
+    K450 = 's450convolve.sdf'
 
     cmd = '%s/fits2ndf in=%s out=%s QUIET'%(convdir,K450_fits,K450)
     os.system(cmd)
 
-    #delete residuals
     if (os.path.exists(in450_fits)):
         os.unlink(in450_fits)
-    if (os.path.exists(text)):
-        os.unlink(text)
     return K450
 
 #################################################################################
@@ -372,8 +364,14 @@ fwhm850MB = 13.0
 fwhm450SB = 25.0 
 fwhm850SB = 48.0 
 
+#set normalisation constants
+alpha450 = 0.94
+alpha850 = 0.98
+beta450 = 0.06
+beta850 = 0.02
+
 #Detection limit 
-SNR = 5
+SNR = 3 # or 5
 
 print 'SNR limit is '+str(SNR)
 
@@ -382,10 +380,8 @@ beta = 1.8 #float(sys.argv[6])
 
 #################################################################################
 ########### free variables
-
-#Directories you are working in !here!
-#input_dir = '/data/damian/maps/'+str(sys.argv[1]) - My directories
-input_dir = str(sys.argv[1])
+#User selects a map input
+input_dir = str(sys.argv[1]) #'input/maps/'
 output_dir = 'output'
 
 #enter the names of the SCUBA-2 data
@@ -399,23 +395,11 @@ MODE = str(sys.argv[5])
 if MODE == 'D':
     print 'Dual Beam Method'
     method = 'beam'
-    #set normalisation constants
-    alpha450 = 0.94
-    alpha850 = 0.98
-    beta450 = 0.06
-    beta850 = 0.02
 elif MODE == 'K':
     print 'Kernel Method'
     method = 'kernel'
-elif MODE == 'S':
-    print 'Single beam Method'
-    method = 'singlebeam'
-    alpha450 = 1.
-    alpha850 = 1.
-    beta450 = 0.0
-    beta850 = 0.0
 else:
-    print "Invalid Method, please enter exactly 'D', 'S' or  'K'"
+    print "Invalid Method, please enter exactly 'D' or  'K'"
     sys.exit()
 
 ###################################################################
@@ -438,13 +422,6 @@ if not os.path.exists(output_dir+'/'+method+'/process/'+file):
 if not os.path.exists(output_dir+'/math'):
     os.makedirs(output_dir+'/math')
 
-if not os.path.exists('temperature_maps'):
-    os.makedirs('temperature_maps')
-if not os.path.exists('temperature_maps/error'):
-    os.makedirs('temperature_maps/error')
-if not os.path.exists('temperature_maps/alpha'):
-    os.makedirs('temperature_maps/alpha')
-
 ######### 2 -- Convolve maps with the beam size of the other #########
 print 2
 #Convolution of maps
@@ -462,12 +439,15 @@ in450_fits = input_dir+'/'+file450+'.fits'
 in850 = input_dir+'/'+file850+'.sdf'
 
 #Convolution by opposing methods
-if MODE == 'D' or MODE == 'S' :
+if MODE == 'D':
     print 'Dual beam Method'
     FourComponentDualBeam(p450,p850,fwhm450MB,fwhm850MB,fwhm450SB,fwhm850SB,in450,in850,output_dir,file)
 elif MODE == 'K':
     print 'Kernel Method' 
     KernelMethod(in450_fits,in450)
+
+cmd = 'mv %s %s'%('s450convolve.sdf',output_dir+'/'+method+'/process/'+file)
+os.system(cmd)
 
 ############### 3 -- Align the 450 map with the 850 map ############
 print 3
@@ -504,17 +484,13 @@ os.system(cmd2)
 print "Alignment of maps"
 #get number of dimensions for maps to check if itermap cut or not
 
-if MODE == 'D' or MODE == 'S':
+if MODE == 'D':
     print 'Dual beam Method'
     ndim450 = PARGET(output_dir+'/'+method+'/map/'+file+'/s450convolve.sdf','ndim','ndftrace')
     ndim850 = PARGET(output_dir+'/'+method+'/map/'+file+'/s850convolve.sdf','ndim','ndftrace')
 elif MODE == 'K':
     print 'Kernel Method' 
     K450 = output_dir+'/'+method+'/process/'+file+'/s450convolve.sdf'
-    cmd = 'mv %s %s'%(output_dir+'/'+method+'/map/'+file+'/s450convolve.sdf',K450)
-    print cmd
-    os.system(cmd)
-    
     ndim450 = PARGET(K450,'ndim','ndftrace')
     ndim850 = PARGET(in850,'ndim','ndftrace')
 
@@ -529,8 +505,7 @@ if ndim450 == ndim850 == 3:
     os.system(cmd2) 
     os.system(cmd3)
     cmd1 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450collapse,s450align,s850collapse)
-    cmd2 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450maskcollapse,s450maskalign,s850collapse)### set conserve to false? ###
-
+    cmd2 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450maskcollapse,s450maskalign,s850collapse)
     os.system(cmd1)
     os.system(cmd2)
 
@@ -542,18 +517,15 @@ elif (ndim450 == 2) & (ndim850 == 3):
     os.system(cmd3)
 
     ### this section appears to be causing gridding in the 450 maps # not sure why ###
-    cmd1 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s450convolve.sdf',s450align,s850collapse)
-    cmd2 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450maskcollapse,s450maskalign,s850collapse)### set conserve to false? ###
-
+    cmd1 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,K450,s450align,s850collapse)
+    cmd2 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450maskcollapse,s450maskalign,s850collapse)
     os.system(cmd1)
     os.system(cmd2)
-
 elif (ndim450 == 2) & (ndim850 == 2):
-    print "path: 2 2"     #Only used for PIPE
-    cmd1 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,output_dir+'/'+method+'/process/'+file+'/s450convolve.sdf',s450align,in850)
-    cmd2 = '%s/wcsalign in=%s out=%s ref=%s method=bilinear conserve=TRUE accept QUIET'%(kapdir,s450mask,s450maskalign,in850) ### set conserve to false? ###
-    os.system(cmd1)
-    os.system(cmd2)
+    print "path: 2 2"     #Only used for Kernel Testing
+    s450align = output_dir+'/'+method+'/process/'+file+'/s450convolve.sdf'
+    s450maskalign = output_dir+'/'+method+'/process/'+file+'/s450mask.sdf'
+    s850collapse = input_dir+'/'+file850+'.sdf'
 else:
     print 'maps are not in 3D - script will Break here'
     sys.exit()
@@ -604,7 +576,7 @@ D_850 = 2.75
 K_450 = 1.84
 K_850 = 1
 
-if MODE == 'D' or MODE == 'S':
+if MODE == 'D':
     var450 = STDV_450/D_450
     var850 = STDV_850/D_850
 elif MODE == 'K':
@@ -737,7 +709,7 @@ TempFINAL = output_dir+'/'+method+'/map/'+file+'/'+file+"temperature.sdf"
 TemperrFINAL = output_dir+'/'+method+'/map/'+file+'/'+file+'temp_error.sdf'
 
 #make NSR map
-makesnr = '%s/makesnr in=%s out=%s minvar=0 QUIET'%(kapdir,input_dir+'/'+file850+'.sdf',SNR)
+makesnr = '%s/makesnr in=%s out=%s QUIET'%(kapdir,input_dir+'/'+file850+'.sdf',SNR)
 os.system(makesnr)
 #mask by stdv
 STDV = 2.*PARGET(SNR,'SIGMA','stats')
@@ -753,15 +725,6 @@ os.system(cmd)
 print 'Create temperature map: ',TempFINAL
 print '========================'
 cmd = '%s/stats ndf=%s'%(kapdir,TempFINAL)
-os.system(cmd)
-
-#create directary for use
-
-cmd = 'cp %s %s'%(TempFINAL,'temperature_maps')
-os.system(cmd)
-cmd = 'cp %s %s'%(TemperrFINAL,'temperature_maps/error')
-os.system(cmd)
-cmd = 'cp %s %s'%(Salpha,'temperature_maps/alpha')
 os.system(cmd)
 
 cmd1 = 'rm -r %s/math/'%(output_dir)
